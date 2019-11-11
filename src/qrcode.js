@@ -38,10 +38,24 @@ QrCode.prototype.decode = function(src, data) {
 
     try {
       this.error = undefined;
-      this.result = this.process(this.imagedata);
+
+      var start = new Date().getTime();
+      var image = this.grayScaleToBitmap(this.grayscale(this.imageData));
+      var detector = new Detector(image);
+      var qrCodeMatrix = detector.detect();
+      this.result = this.process(qrCodeMatrix);
+
+      var end = new Date().getTime();
+      var time = end - start;
+      if (this.debug) {
+        console.log('QR Code processing time (ms): ' + time);
+      }
     } catch (e) {
       this.error = e;
-      this.result = undefined;
+      this.result = {
+        result: undefined,
+        points: qrCodeMatrix.points,
+      };
     }
 
     if (this.callback != null) {
@@ -109,42 +123,21 @@ QrCode.prototype.decode_utf8 = function(s) {
   return decodeURIComponent(escape(s));
 };
 
-QrCode.prototype.process = function(imageData) {
-
-  var start = new Date().getTime();
-
-  var image = this.grayScaleToBitmap(this.grayscale(imageData));
-
-  var detector = new Detector(image);
-
-  var qRCodeMatrix = detector.detect();
-
-  /*for (var y = 0; y < qRCodeMatrix.bits.height; y++)
-   {
-   for (var x = 0; x < qRCodeMatrix.bits.width; x++)
-   {
-   var point = (x * 4*2) + (y*2 * imageData.width * 4);
-   imageData.data[point] = qRCodeMatrix.bits.get_Renamed(x,y)?0:0;
-   imageData.data[point+1] = qRCodeMatrix.bits.get_Renamed(x,y)?0:0;
-   imageData.data[point+2] = qRCodeMatrix.bits.get_Renamed(x,y)?255:0;
-   }
-   }*/
-
-  var reader = Decoder.decode(qRCodeMatrix.bits);
+QrCode.prototype.process = function(matrix) {
+  var reader = Decoder.decode(matrix.bits);
   var data = reader.DataByte;
+
   var str = "";
   for (var i = 0; i < data.length; i++) {
     for (var j = 0; j < data[i].length; j++)
       str += String.fromCharCode(data[i][j]);
   }
 
-  var end = new Date().getTime();
-  var time = end - start;
-  if (this.debug) {
-    console.log('QR Code processing time (ms): ' + time);
-  }
 
-  return {result: this.decode_utf8(str), points: qRCodeMatrix.points};
+  return {
+    result: this.decode_utf8(str),
+    points: matrix.points,
+  };
 };
 
 QrCode.prototype.getPixel = function(imageData, x, y) {
