@@ -1,13 +1,13 @@
 var pkg = require('./package.json');
 
 export default {
-  entry: 'src/index.js',
-  targets: [
+  input: 'src/index.js',
+  output: [
     {
-      dest: pkg['main'],
+      file: pkg['main'],
       format: 'umd',
-      moduleName: 'QrCode',
-      sourceMap: true
+      name: 'QrCode',
+      sourcemap: true
     }
   ]
 };
